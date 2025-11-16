@@ -1,16 +1,16 @@
 # Use official Tomcat image
 FROM tomcat:9.0
 
-# Remove default webapps if you want a clean Tomcat
+# Remove default webapps for a clean deployment
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Set working directory in container
+# Set working directory
 WORKDIR /usr/local/tomcat/webapps/
 
-# Copy WAR file built by Maven into Tomcat
-COPY target/*.war /usr/local/tomcat/webapps/ROOT.war
+# Copy WAR file built by Maven into Tomcat (keep original name)
+COPY target/*.war /usr/local/tomcat/webapps/
 
-# Expose Tomcat default port
+# Expose Tomcat port
 EXPOSE 8080
 
 # Start Tomcat

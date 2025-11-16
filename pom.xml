@@ -18,6 +18,7 @@
     </properties>
 
     <dependencies>
+
         <dependency>
             <groupId>com.oracle.bedrock</groupId>
             <artifactId>bedrock-runtime-maven</artifactId>
@@ -30,12 +31,13 @@
             <version>3.8.1</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
 
-            <!-- Java Compiler Plugin -->
+            <!-- Java compiler -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -43,36 +45,43 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
-                    <release>11</release>
                 </configuration>
             </plugin>
 
-            <!-- Updated WAR Plugin (Fixes XStream & compatibility errors) -->
+            <!-- WAR Builder -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.4.0</version>
             </plugin>
 
+            <!-- Deploy Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.2</version>
+            </plugin>
+
         </plugins>
     </build>
 
+    <!-- Use EC2 PRIVATE IP so Jenkins container can reach Nexus -->
     <distributionManagement>
         <snapshotRepository>
             <id>nexusRepo</id>
-            <url>http://13.233.230.166:8081/repository/maven-snapshots/</url>
+            <url>http://172.31.67.112:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
 
         <repository>
             <id>maven-releases</id>
-            <url>http://3.236.243.28:8081/repository/maven-releases/</url>
+            <url>http://172.31.67.112:8081/repository/maven-releases/</url>
         </repository>
     </distributionManagement>
 
     <pluginRepositories>
         <pluginRepository>
             <id>MavenCentral</id>
-            <name>Maven Central Repository</name>
+            <name>Maven Central</name>
             <url>https://repo.maven.apache.org/maven2</url>
         </pluginRepository>
     </pluginRepositories>

@@ -8,10 +8,10 @@ RUN rm -rf /usr/local/tomcat/webapps/*
 WORKDIR /usr/local/tomcat/webapps/
 
 # Copy WAR file built by Maven into Tomcat
-COPY target/*.war /usr/local/tomcat/webapps/
+COPY target/*.war /usr/local/tomcat/webapps/myweb.war
 
 # Expose Tomcat default port
-EXPOSE 8082
+EXPOSE 8080
 
 # Start Tomcat
 CMD ["catalina.sh", "run"]

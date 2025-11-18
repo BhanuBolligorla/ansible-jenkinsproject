@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for SonarQube analysis
+          fetch-depth: 0
 
       # ---------------------------
       # Set up JDK 17
@@ -42,39 +42,32 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       # ---------------------------
-      # Maven Compile (to ensure code compiles before SonarQube)
+      # Compile + Run Tests + Coverage
       # ---------------------------
-      - name: Maven Compile
-        run: mvn compile
+      - name: Maven Build (compile + test + jacoco)
+        run: |
+          mvn clean verify jacoco:report
 
       # ---------------------------
-      # SonarQube Scan
+      # SonarQube Scan (AFTER build)
       # ---------------------------
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_AUTH_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.projectKey=ansible-jenkinsproject
-            -Dsonar.sources=src
-            -Dsonar.java.source=17
-            -Dsonar.java.target=17
-            -Dsonar.sourceEncoding=UTF-8
-            -Dsonar.java.test.binaries=target/test-classes
+        run: |
+          mvn sonar:sonar \
+            -Dsonar.projectKey=ansible-jenkinsproject \
+            -Dsonar.sources=src/main/java \
+            -Dsonar.tests=src/test/java \
+            -Dsonar.java.binaries=target/classes \
+            -Dsonar.java.test.binaries=target/test-classes \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
       # ---------------------------
-      # Run Tests and Generate Coverage Report
-      # ---------------------------
-      - name: Run Tests and Generate Coverage
-        run: |
-          mvn test jacoco:report
-        continue-on-error: true  # Don't fail the build if tests fail
-
-      # ---------------------------
-      # Maven Build & Deploy to Nexus
+      # Maven Deploy to Nexus
       # ---------------------------
       - name: Build & Deploy to Nexus
         run: |
@@ -102,7 +95,7 @@ jobs:
           docker tag $DOCKER_IMAGE:$BUILD_NUMBER $DOCKER_IMAGE:latest
 
       # ---------------------------
-      # Push Docker Image to DockerHub
+      # Push Docker Image
       # ---------------------------
       - name: Push Docker Image
         run: |
@@ -111,7 +104,7 @@ jobs:
           docker push $DOCKER_IMAGE:latest
 
       # ---------------------------
-      # Deploy to EC2 (SSH)
+      # Deploy to EC2
       # ---------------------------
       - name: Deploy on EC2 (SSH)
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'

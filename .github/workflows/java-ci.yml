@@ -2,9 +2,9 @@ name: Java CI/CD
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "main"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "main"]
 
 jobs:
   build:
@@ -18,7 +18,9 @@ jobs:
       # Checkout Code
       # ---------------------------
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for SonarQube analysis
 
       # ---------------------------
       # Set up JDK 17
@@ -30,10 +32,26 @@ jobs:
           distribution: temurin
 
       # ---------------------------
+      # Cache Maven Dependencies
+      # ---------------------------
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      # ---------------------------
+      # Maven Compile (to ensure code compiles before SonarQube)
+      # ---------------------------
+      - name: Maven Compile
+        run: mvn compile
+
+      # ---------------------------
       # SonarQube Scan
       # ---------------------------
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v2
+        uses: sonarsource/sonarqube-scan-action@v2.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_AUTH_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -41,6 +59,19 @@ jobs:
           args: >
             -Dsonar.projectKey=ansible-jenkinsproject
             -Dsonar.sources=src
+            -Dsonar.java.source=17
+            -Dsonar.java.target=17
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.java.test.binaries=target/test-classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+      # ---------------------------
+      # Run Tests and Generate Coverage Report
+      # ---------------------------
+      - name: Run Tests and Generate Coverage
+        run: |
+          mvn test jacoco:report
+        continue-on-error: true  # Don't fail the build if tests fail
 
       # ---------------------------
       # Maven Build & Deploy to Nexus
@@ -56,7 +87,7 @@ jobs:
       # Login to DockerHub
       # ---------------------------
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -83,7 +114,7 @@ jobs:
       # Deploy to EC2 (SSH)
       # ---------------------------
       - name: Deploy on EC2 (SSH)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}

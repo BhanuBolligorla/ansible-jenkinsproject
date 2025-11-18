@@ -14,6 +14,7 @@ jobs:
       DOCKER_IMAGE: bhanu4309/javaproject
 
     steps:
+
       # ---------------------------
       # Checkout Code
       # ---------------------------
@@ -42,14 +43,14 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       # ---------------------------
-      # Compile + Run Tests + Coverage
+      # Compile + Test + Jacoco
       # ---------------------------
-      - name: Maven Build (compile + test + jacoco)
+      - name: Maven Build (compile + test + coverage)
         run: |
           mvn clean verify jacoco:report
 
       # ---------------------------
-      # SonarQube Scan (AFTER build)
+      # SonarQube Scan
       # ---------------------------
       - name: SonarQube Scan
         env:
@@ -62,12 +63,12 @@ jobs:
             -Dsonar.tests=src/test/java \
             -Dsonar.java.binaries=target/classes \
             -Dsonar.java.test.binaries=target/test-classes \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
             -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+            -Dsonar.login=$SONAR_TOKEN
 
       # ---------------------------
-      # Maven Deploy to Nexus
+      # Deploy to Nexus Repository
       # ---------------------------
       - name: Build & Deploy to Nexus
         run: |
@@ -75,9 +76,10 @@ jobs:
         env:
           NEXUS_USR: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PSW: ${{ secrets.NEXUS_PASSWORD }}
+          NEXUS_HOST_URL: ${{ secrets.NEXUS_HOST_URL }}
 
       # ---------------------------
-      # Login to DockerHub
+      # DockerHub Login
       # ---------------------------
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -104,7 +106,7 @@ jobs:
           docker push $DOCKER_IMAGE:latest
 
       # ---------------------------
-      # Deploy to EC2
+      # Deploy on EC2
       # ---------------------------
       - name: Deploy on EC2 (SSH)
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'

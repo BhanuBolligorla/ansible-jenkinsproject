@@ -46,8 +46,7 @@ jobs:
       # Compile + Test + Jacoco
       # ---------------------------
       - name: Maven Build (compile + test + coverage)
-        run: |
-          mvn clean verify jacoco:report
+        run: mvn clean verify jacoco:report
 
       # ---------------------------
       # SonarQube Scan
@@ -71,8 +70,7 @@ jobs:
       # Deploy to Nexus Repository
       # ---------------------------
       - name: Build & Deploy to Nexus
-        run: |
-          mvn -s .github/maven/settings.xml clean deploy
+        run: mvn -s .github/maven/settings.xml clean deploy
         env:
           NEXUS_USR: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PSW: ${{ secrets.NEXUS_PASSWORD }}
@@ -104,19 +102,3 @@ jobs:
           BUILD_NUMBER=${{ github.run_number }}
           docker push $DOCKER_IMAGE:$BUILD_NUMBER
           docker push $DOCKER_IMAGE:latest
-
-      # ---------------------------
-      # Deploy on EC2
-      # ---------------------------
-      - name: Deploy on EC2 (SSH)
-        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
-            docker rm -f javaproject || true
-            docker pull bhanu4309/javaproject:latest
-            docker run -d --name javaproject -p 8083:8080 bhanu4309/javaproject:latest

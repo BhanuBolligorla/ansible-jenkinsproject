@@ -1,0 +1,86 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven'
+        jdk 'JDK17'
+    }
+
+    environment {
+        SONAR_TOKEN = credentials('sonarqube-token')
+        DOCKERHUB = credentials('DockerHub') // DockerHub credentials in Jenkins
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/BhanuBolligorla/ansible-jenkinsproject.git'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh 'mvn clean verify sonar:sonar'
+                }
+            }
+        }
+
+        stage('Build & Deploy to Nexus') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'nexus',
+                    usernameVariable: 'NEXUS_USR',
+                    passwordVariable: 'NEXUS_PSW'
+                )]) {
+                    configFileProvider([configFile(
+                        fileId: 'nexus-settings',
+                        variable: 'MAVEN_SETTINGS'
+                    )]) {
+                        sh "mvn -s $MAVEN_SETTINGS clean deploy"
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build Docker image from Dockerfile in repo root
+                    def appImage = docker.build("bhanu4309/myweb:${BUILD_NUMBER}", ".")
+                    appImage.tag('latest')
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
+                        docker.image("bhanu4309/myweb:${BUILD_NUMBER}").push()
+                        docker.image("bhanu4309/myweb:latest").push()
+                    }
+                }
+            }
+        }
+
+        stage('Run Container for Verification') {
+            steps {
+                script {
+                    // Stop existing container if running
+                    sh "docker rm -f myweb || true"
+
+                    // Run container with port mapping
+                    sh "docker run -d --name myweb -p 8083:8080 bhanu4309/myweb:latest"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished. Access your app at http://<server-ip>:8082/myweb"
+        }
+    }
+}

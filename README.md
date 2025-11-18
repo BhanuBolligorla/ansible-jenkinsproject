@@ -1,1 +1,1 @@
-trigger pipeline
+rigger pipeline

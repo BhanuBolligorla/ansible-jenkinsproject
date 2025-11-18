@@ -93,7 +93,7 @@
     <!-- Nexus Deploy URLs -->
     <distributionManagement>
         <snapshotRepository>
-            <id>nexusRepo</id>
+            <id>maven-snapshots</id>
             <url>http://98.92.27.148:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
 

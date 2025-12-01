@@ -99,7 +99,7 @@
 
         <repository>
             <id>maven-releases</id>
-            <url>http://54.82.3.20:8081/repository/maven-releases/</url>
+            <url>http://54.82.3.20:8081/repository/raw-releases/</url>
         </repository>
     </distributionManagement>
 
